@@ -33,6 +33,7 @@ class Plsa:
         self.zw = _rand_mat(self.topics, self.words)
         self.dz = _rand_mat(self.docs, self.topics)
         self.dw_z = None
+        self.beta = 0.8
         self._cal_p_dw()
 
     def _cal_p_dw(self):
@@ -42,7 +43,7 @@ class Plsa:
             for w in self.corpus[d]:
                 tmp = 0
                 for z in xrange(self.topics):
-                    tmp += self.zw[z][w]*self.dz[d][z]
+                    tmp += (self.zw[z][w]*self.dz[d][z])**self.beta
                 self.p_dw[-1][w] = tmp
 
     def _e_step(self):
@@ -52,7 +53,7 @@ class Plsa:
             for w in self.corpus[d]:
                 self.dw_z[-1][w] = []
                 for z in xrange(self.topics):
-                    self.dw_z[-1][w].append(self.zw[z][w]*self.dz[d][z]/self.p_dw[d][w])
+                    self.dw_z[-1][w].append(((self.zw[z][w]*self.dz[d][z])**self.beta)/self.p_dw[d][w])
 
     def _m_step(self):
         for z in xrange(self.topics):
