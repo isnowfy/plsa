@@ -34,7 +34,6 @@ class Plsa:
         self.dz = _rand_mat(self.docs, self.topics)
         self.dw_z = None
         self.beta = 0.8
-        self._cal_p_dw()
 
     def _cal_p_dw(self):
         self.p_dw = []
@@ -42,11 +41,13 @@ class Plsa:
             self.p_dw.append({})
             for w in self.corpus[d]:
                 tmp = 0
-                for z in xrange(self.topics):
-                    tmp += (self.zw[z][w]*self.dz[d][z])**self.beta
+                for _ in range(self.corpus[d][w]):
+                    for z in xrange(self.topics):
+                        tmp += (self.zw[z][w]*self.dz[d][z])**self.beta
                 self.p_dw[-1][w] = tmp
 
     def _e_step(self):
+        self._cal_p_dw()
         self.dw_z = []
         for d in xrange(self.docs):
             self.dw_z.append({})
@@ -71,7 +72,6 @@ class Plsa:
                     self.dz[d][z] += self.corpus[d][w]*self.dw_z[d][w][z]
             for z in xrange(self.topics):
                 self.dz[d][z] /= self.each[d]
-        self._cal_p_dw()
 
     def _cal_likelihood(self):
         self.likelihood = 0
@@ -100,19 +100,20 @@ class Plsa:
         norm = sum(ret)
         for i in xrange(self.topics):
             ret[i] /= norm
-        p_dw = {}
-        for w in doc:
-            p_dw[w] = 0
-            for z in xrange(self.topics):
-                p_dw[w] += ret[z]*self.zw[z][w]
         tmp = 0
         for _ in xrange(max_iter):
+            p_dw = {}
+            for w in doc:
+                p_dw[w] = 0
+                for _ in range(doc[w]):
+                    for z in xrange(self.topics):
+                        p_dw[w] += (ret[z]*self.zw[z][w])**self.beta
             # e setp
             dw_z = {}
             for w in doc:
                 dw_z[w] = []
                 for z in xrange(self.topics):
-                    dw_z[w].append(self.zw[z][w]*ret[z]/p_dw[w])
+                    dw_z[w].append(((self.zw[z][w]*ret[z])**self.beta)/p_dw[w])
             # m step
             ret = [0]*self.topics
             for z in xrange(self.topics):
@@ -121,11 +122,6 @@ class Plsa:
             for z in xrange(self.topics):
                 ret[z] /= words
             # cal likelihood
-            p_dw = {}
-            for w in doc:
-                p_dw[w] = 0
-                for z in xrange(self.topics):
-                    p_dw[w] += ret[z]*self.zw[z][w]
             likelihood = 0
             for w in doc:
                 likelihood += doc[w]*math.log(p_dw[w])
