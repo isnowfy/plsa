@@ -3,6 +3,9 @@
 import math
 import operator
 import random
+import gzip
+import sys
+import marshal
 
 def cos_sim(p, q):
     sum0 = sum(map(lambda x:x*x, p))
@@ -33,7 +36,43 @@ class Plsa:
         self.zw = _rand_mat(self.topics, self.words)
         self.dz = _rand_mat(self.docs, self.topics)
         self.dw_z = None
+        self.p_dw = []
         self.beta = 0.8
+
+    def save(self, fname, iszip=True):
+        d = {}
+        for k, v in self.__dict__.items():
+            if hasattr(v, '__dict__'):
+                d[k] = v.__dict__
+            else:
+                d[k] = v
+        if sys.version_info[0] == 3:
+            fname = fname + '.3'
+        if not iszip:
+            marshal.dump(d, open(fname, 'wb'))
+        else:
+            f = gzip.open(fname, 'wb')
+            f.write(marshal.dumps(d))
+            f.close()
+
+    def load(self, fname, iszip=True):
+        if sys.version_info[0] == 3:
+            fname = fname + '.3'
+        if not iszip:
+            d = marshal.load(open(fname, 'rb'))
+        else:
+            try:
+                f = gzip.open(fname, 'rb')
+                d = marshal.loads(f.read())
+            except IOError:
+                f = open(fname, 'rb')
+                d = marshal.loads(f.read())
+            f.close()
+        for k, v in d.items():
+            if hasattr(self.__dict__[k], '__dict__'):
+                self.__dict__[k].__dict__ = v
+            else:
+                self.__dict__[k] = v
 
     def _cal_p_dw(self):
         self.p_dw = []
